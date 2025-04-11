@@ -41,6 +41,49 @@ def prepare_img(img_path, target_shape, device):
     img = transform(img).to(device).unsqueeze(0)
     return img
 
+def rgb2yuv(rgb_img):
+    # rgb2yuv_filter = torch.tensor(
+    #     [[[[0.299, -0.169, 0.499],
+    #        [0.587, -0.331, -0.418],
+    #        [0.114, 0.499, -0.0813]]]])
+    rgb2yuv_filter = torch.tensor(
+        [[[[0.299, 0.587, 0.114],
+           [-0.169, -0.331, 0.499],
+           [0.499, -0.418, -0.0813]]]]).reshape(3, 3, 1, 1)
+    rgb2yuv_bias = torch.tensor([0., 0.5, 0.5])
+
+    temp = torch.nn.functional.conv2d(rgb_img, rgb2yuv_filter, bias=rgb2yuv_bias)
+    return temp
+
+def yuv2rgb(yuv_img):
+    yuv_img = torch.mul(yuv_img, 255)
+    yuv2rgb_filter = torch.tensor(
+        [[[[1., 0., 1.40199995],
+           [1., -0.34413999, -0.71414],
+           [1., 1.77199996, 0.]]]]).reshape(3, 3, 1, 1)
+    yuv2rgb_bias = torch.tensor([-179.45599365, 135.45983887, -226.81599426])
+
+    temp = torch.nn.functional.conv2d(yuv_img, yuv2rgb_filter, bias=yuv2rgb_bias)
+    temp = torch.maximum(temp, tf.zeros(temp.get_shape(), dtype=torch.float32))
+    temp = torch.minimum(temp, torch.mul(torch.ones(temp.get_shape(), dtype=torch.float32), 255))
+    temp = torch.div(temp, 255)
+    return temp
+
+def prepare_style_image(style_img, content_img):
+    grayscale2rgb = transforms.Lambda(lambda x: x.repeat(3, 1, 1) if x.size(0)==1 else x)
+
+    style_grayscale = transforms.functional.rgb_to_grayscale(style_img)
+    style_grayscale_rgb = grayscale2rgb(style_grayscale) # grayscale -> rgb
+    style_grayscale_yuv = rgv2yuv(style_grayscale_rgb)
+
+    content_yuv = rgb2yuv(content_img)
+
+    combined_yuv = torch.cat((torch.split(style_grayscale_yuv, 3)[0], torch.split(original_yuv, 3)[1], torch.split(original_yuv, 3)[2]))
+    combined_rgb = yuv2rgb(combined_yuv)
+
+    return combined_rgb
+
+
 def save_image(img, img_path):
     if len(img.shape) == 2:
         img = np.stack((img,) * 3, axis=-1)
@@ -182,7 +225,7 @@ def neural_style_transfer(config):
 
 PATH = ''
 CONTENT_IMAGE = 'c1.jpg'
-STYLE_IMAGE = 's1.jpg'
+STYLE_IMAGE = 's2_bw.jpg'
 
 default_resource_dir = os.path.join(PATH, 'data')
 content_images_dir = os.path.join(default_resource_dir, 'content-images')
