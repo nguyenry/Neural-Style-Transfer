@@ -17,6 +17,7 @@ def load_image(img_path,target_shape="None"):
     if not os.path.exists(img_path):
         raise Exception(f'Path not found: {img_path}')
     img = cv.imread(img_path)[:, :, ::-1]                   # convert BGR to RGB when reading
+    cv.imwrite('data/output-images/output.jpg', img)
     if target_shape is not None:
         if isinstance(target_shape, int) and target_shape != -1:
             current_height, current_width = img.shape[:2]
@@ -41,48 +42,46 @@ def prepare_img(img_path, target_shape, device):
     img = transform(img).to(device).unsqueeze(0)
     return img
 
-def rgb2yuv(rgb_img):
-    # rgb2yuv_filter = torch.tensor(
-    #     [[[[0.299, -0.169, 0.499],
-    #        [0.587, -0.331, -0.418],
-    #        [0.114, 0.499, -0.0813]]]])
-    rgb2yuv_filter = torch.tensor(
-        [[[[0.299, 0.587, 0.114],
-           [-0.169, -0.331, 0.499],
-           [0.499, -0.418, -0.0813]]]]).reshape(3, 3, 1, 1)
-    rgb2yuv_bias = torch.tensor([0., 0.5, 0.5])
+def prepare_style_img(style_img_path, content_img_path, device, target_shape="None"):
+    if not os.path.exists(style_img_path):
+        raise Exception(f'Path for style image not found: {style_img_path}')
+    if not os.path.exists(style_img_path):
+        raise Exception(f'Path for content image not found: {content_img_path}')
+    img = cv.imread(style_img_path)[:, :, ::-1]  # convert BGR to RGB when reading
+    content_img = cv.imread(content_img_path)[:, :, ::-1]
+    img = cv.resize(img, content_img.shape[1::-1])
 
-    temp = torch.nn.functional.conv2d(rgb_img, rgb2yuv_filter, bias=rgb2yuv_bias)
-    return temp
+    # YUV handling
+    style_yuv = cv.cvtColor(img, cv.COLOR_RGB2YUV)
+    content_yuv = cv.cvtColor(content_img, cv.COLOR_RGB2YUV)
 
-def yuv2rgb(yuv_img):
-    yuv_img = torch.mul(yuv_img, 255)
-    yuv2rgb_filter = torch.tensor(
-        [[[[1., 0., 1.40199995],
-           [1., -0.34413999, -0.71414],
-           [1., 1.77199996, 0.]]]]).reshape(3, 3, 1, 1)
-    yuv2rgb_bias = torch.tensor([-179.45599365, 135.45983887, -226.81599426])
+    combined_yuv = style_yuv.copy()
+    combined_yuv[:,:,1] = content_yuv[:,:,1]
+    combined_yuv[:,:,2] = content_yuv[:,:,2]
+    img = cv.cvtColor(combined_yuv, cv.COLOR_YUV2RGB)
 
-    temp = torch.nn.functional.conv2d(yuv_img, yuv2rgb_filter, bias=yuv2rgb_bias)
-    temp = torch.maximum(temp, tf.zeros(temp.get_shape(), dtype=torch.float32))
-    temp = torch.minimum(temp, torch.mul(torch.ones(temp.get_shape(), dtype=torch.float32), 255))
-    temp = torch.div(temp, 255)
-    return temp
+    # cv.imwrite('data/output-images/output.jpg', img)
 
-def prepare_style_image(style_img, content_img):
-    grayscale2rgb = transforms.Lambda(lambda x: x.repeat(3, 1, 1) if x.size(0)==1 else x)
+    # Load image handling
+    if target_shape is not None:
+        if isinstance(target_shape, int) and target_shape != -1:
+            current_height, current_width = img.shape[:2]
+            new_height = target_shape
+            new_width = int(current_width * (new_height / current_height))
+            img = cv.resize(img, (new_width, new_height), interpolation=cv.INTER_CUBIC)
+        else:
+            img = cv.resize(img, (target_shape[1], target_shape[0]), interpolation=cv.INTER_CUBIC)
+    img = img.astype(np.float32)
+    img /= 255.0
 
-    style_grayscale = transforms.functional.rgb_to_grayscale(style_img)
-    style_grayscale_rgb = grayscale2rgb(style_grayscale) # grayscale -> rgb
-    style_grayscale_yuv = rgv2yuv(style_grayscale_rgb)
-
-    content_yuv = rgb2yuv(content_img)
-
-    combined_yuv = torch.cat((torch.split(style_grayscale_yuv, 3)[0], torch.split(original_yuv, 3)[1], torch.split(original_yuv, 3)[2]))
-    combined_rgb = yuv2rgb(combined_yuv)
-
-    return combined_rgb
-
+    # Normalize
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Lambda(lambda x: x.mul(255)),
+        transforms.Normalize(mean=IMAGENET_MEAN_255, std=IMAGENET_STD_NEUTRAL)])
+    img = transform(img).to(device).unsqueeze(0)
+    
+    return img
 
 def save_image(img, img_path):
     if len(img.shape) == 2:
@@ -117,7 +116,6 @@ def save_and_maybe_display(optimizing_img, dump_path, config, img_id, num_of_ite
         dump_img += np.array(IMAGENET_MEAN_255).reshape((1, 1, 3))
         dump_img = np.clip(dump_img, 0, 255).astype('uint8')
         cv.imwrite(os.path.join(dump_path, out_img_name), dump_img[:, :, ::-1])
-    
 
 def prepare_model(device):
     '''
@@ -191,7 +189,8 @@ def neural_style_transfer(config):
     os.makedirs(dump_path, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     content_img = prepare_img(content_img_path, config['height'], device)
-    style_img = prepare_img(style_img_path, config['height'], device)
+    style_img = prepare_style_img(style_img_path, content_img_path, device, target_shape=config['height'])
+    # style_img = prepare_img(style_img_path, config['height'], device)
     
     init_img = content_img
     
@@ -224,8 +223,8 @@ def neural_style_transfer(config):
     return dump_path
 
 PATH = ''
-CONTENT_IMAGE = 'c1.jpg'
-STYLE_IMAGE = 's2_bw.jpg'
+CONTENT_IMAGE = 'c6.jpg'
+STYLE_IMAGE = 's2.jpg'
 
 default_resource_dir = os.path.join(PATH, 'data')
 content_images_dir = os.path.join(default_resource_dir, 'content-images')
