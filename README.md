@@ -96,7 +96,7 @@ Neural style transfer is a technique that is used to take two images—a content
 
 The following images were generated using no image manipulation program(s) other than the code described in this article.
 
-<img src="https://github.com/nazianafis/Resources/blob/main/NST/NST-outputs.png" alt="content" width="700"/>
+<img src="https://github.com/nguyenry/Neural-Style-Transfer/blob/main/nst-chart.png" alt="content"/>
 
 
 ## Citations <a name="cite"></a>
