@@ -1,6 +1,3 @@
-<br>
-<img src="https://github.com/nazianafis/Resources/blob/main/NST/NST-gif.gif" alt="header" align="right" width="270"/>
-
 # Colour-Preserving Neural Style Transfer (NST)
 
 Neural Style Transfer is the ability to create a new image (known as a pastiche) based on two input images: one representing the content and the other representing the artistic style.
@@ -34,8 +31,8 @@ Neural style transfer is a technique that is used to take two images—a content
     5. Convert the new style image back to RGB to pass into VGG19.
 2. Next, we load VGG19 which is a pre-trained CNN (convolutional neural network).
     1. Starting from the network's input layer, the first few layer activations represent low-level features like colors, and textures. As we step through the network, the final few layers represent higher-level features—like eyes.
-    2. In this case, we use `conv1_1`, `conv2_1`, `conv3_1`, `conv4_1`, `conv5_1` for style representation, and `conv4_2` for content representation.    
-![](https://github.com/nazianafis/Resources/blob/main/NST/NST-architecture.png)
+    2. In this case, we use `conv1_1`, `conv2_1`, `conv3_1`, `conv4_1`, `conv5_1` for style representation, and `conv4_2` for content representation.
+<img src="https://github.com/nguyenry/Neural-Style-Transfer/blob/main/nst-network.png" alt="nst-network"/>
 
 3. We begin by cloning the content image and then iteratively changing its style. Then, we set our task as an optimization problem where we try to minimize:
     1. **content loss**, which is the L2 distance between the content and the generated image,
@@ -96,7 +93,7 @@ Neural style transfer is a technique that is used to take two images—a content
 
 The following images were generated using no image manipulation program(s) other than the code described in this article.
 
-<img src="https://github.com/nguyenry/Neural-Style-Transfer/blob/main/nst-chart.png" alt="content"/>
+<img src="https://github.com/nguyenry/Neural-Style-Transfer/blob/main/nst-chart.png" alt="nst-outputs"/>
 
 
 ## Citations <a name="cite"></a>
