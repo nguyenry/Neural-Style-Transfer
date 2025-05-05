@@ -1,13 +1,13 @@
 <br>
 <img src="https://github.com/nazianafis/Resources/blob/main/NST/NST-gif.gif" alt="header" align="right" width="270"/>
 
-# Neural-Style-Transfer (NST)
+# Colour-Preserving Neural Style Transfer (NST)
 
 Neural Style Transfer is the ability to create a new image (known as a pastiche) based on two input images: one representing the content and the other representing the artistic style.
 
 This repository contains a lightweight PyTorch implementation of art style transfer discussed in the seminal paper by [Gatys et al.](https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Gatys_Image_Style_Transfer_CVPR_2016_paper.pdf) To make the model faster and more accurate, a pre-trained VGG19 model is used.
 
-##### 🔗Check out [this article](https://nazianafis.medium.com/a-lightweight-pytorch-implementation-of-neural-style-transfer-86603e5eb551) by me regarding the same.
+What our project does differently from [Gatys et al.](https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Gatys_Image_Style_Transfer_CVPR_2016_paper.pdf) is preserve the original colors from the content image.
 
 ## Table of Contents
 
@@ -18,9 +18,7 @@ This repository contains a lightweight PyTorch implementation of art style trans
     1. [Dependencies](#dependencies)
     2. [Usage](#usage)
 5. [Output](#output)
-6. [Acknowledgements](#ack)
-7. [License](#license)
-8. [Star History](#star-history)
+6. [Acknowledgements](#cite)
 
 ## Overview <a name="overview"></a>
 
@@ -29,6 +27,11 @@ Neural style transfer is a technique that is used to take two images—a content
 ## How does it work?<a name="working"></a>
 
 1. We take content and style images as input and pre-process them.
+    1. For the style image, we do another step of pre-processing to preserve the color of the content image.
+    2. From an RGB image, convert to YUV color space.
+    3. Resize the image to be the same size as the content image.
+    4. Convert the content image to YUV and replace the U and V color channels from the style image with the U and V channels from the content image.
+    5. Convert the new style image back to RGB to pass into VGG19.
 2. Next, we load VGG19 which is a pre-trained CNN (convolutional neural network).
     1. Starting from the network's input layer, the first few layer activations represent low-level features like colors, and textures. As we step through the network, the final few layers represent higher-level features—like eyes.
     2. In this case, we use `conv1_1`, `conv2_1`, `conv3_1`, `conv4_1`, `conv5_1` for style representation, and `conv4_2` for content representation.    
@@ -96,22 +99,11 @@ The following images were generated using no image manipulation program(s) other
 <img src="https://github.com/nazianafis/Resources/blob/main/NST/NST-outputs.png" alt="content" width="700"/>
 
 
-## Acknowledgements <a name="ack"></a>
+## Citations <a name="cite"></a>
 
-These are some of the resources I referred to while working on this project. You might want to check them out.
-
+* Nazia Nafis's [implementation of conventional NST](https://github.com/nazianafis/Neural-Style-Transfer).
+* Pavel Gonchar's [implementation of color-independent NST with TensorFlow](https://github.com/pavelgonchar/color-independent-style-transfer).
 * PyTorch's [tutorial on NST](https://pytorch.org/tutorials/advanced/neural_style_tutorial.html).
-* Aleksa Gordic's [implementation](https://github.com/gordicaleksa/pytorch-neural-style-transfer).
-* The original paper on neural style transfer by [Gatys et al](https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Gatys_Image_Style_Transfer_CVPR_2016_paper.pdf) .
+* The original paper on neural style transfer by [Gatys et. al](https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Gatys_Image_Style_Transfer_CVPR_2016_paper.pdf).
 * The original paper on [VGG19](https://arxiv.org/abs/1409.1556).
 * [Wikimedia](https://commons.wikimedia.org/wiki/Category:Images), [Unsplash](https://unsplash.com/) for all the content and style images.
-
-
-## License <a name="license"></a>
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-
-## Star History <a name="star-history"></a>
-
-[![Star History Chart](https://api.star-history.com/svg?repos=nazianafis/Neural-Style-Transfer&type=Date)](https://star-history.com/#nazianafis/Neural-Style-Transfer&Date)
